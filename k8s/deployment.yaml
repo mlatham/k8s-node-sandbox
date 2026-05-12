@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shutdown-lifecycle
+  labels:
+    app: shutdown-lifecycle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shutdown-lifecycle
+  template:
+    metadata:
+      labels:
+        app: shutdown-lifecycle
+    spec:
+      # TOUR: Maximum amount of time k8s will wait for a pod to terminate gracefully.
+      # Must be longer than the longest running request, or that request will die in darkness.
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: app
+          image: shutdown-lifecycle
+          ports:
+            - containerPort: 8080
+          lifecycle:
+            # TOUR: Without this delay, container might receive a SIGTERM and stop accepting traffic
+            # while the Load Balancer is still sending it requests for a few seconds.
+            # This duration is included in terminationGracePeriodSeconds (eg: 90-8={application shut down time}).
+            preStop:
+              exec:
+                command: ["sleep", "8"]
+          # TOUR: Efficient startup probe, ensures container is marked ready as soon as it's able to serve.
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 1
+          # TOUR: HTTP readiness probe pulls pod out of receiving requests on short-term traffic saturation.
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 1 # Eager failure threshold pulls pod out of rotation on first sign of saturation.
+          # TOUR: HTTP liveness probe terminates pods on deadlock (or 15+ second traffic saturation, beware).
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3 # Longer failure threshold ensures we don't kill the pod eagerly on saturation timeouts.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
