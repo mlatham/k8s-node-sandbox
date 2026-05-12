@@ -1,0 +1,10 @@
+{
+  "name": "k8s-shutdown-lifecycle",
+  "version": "1.0.0",
+  "description": "Demonstrates Kubernetes pod shutdown lifecycle",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}

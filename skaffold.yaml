@@ -1,0 +1,21 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: shutdown-lifecycle
+build:
+  local:
+      push: false
+  artifacts:
+    - image: shutdown-lifecycle
+      docker:
+        dockerfile: Dockerfile
+manifests:
+  rawYaml:
+    - k8s/*.yaml
+deploy:
+  kubectl: {}
+portForward:
+  - resourceType: service
+    resourceName: shutdown-lifecycle
+    port: 8080
+    localPort: 8080
